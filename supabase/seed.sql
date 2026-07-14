@@ -1,0 +1,2 @@
+-- The initial migration already contains the three demo categories and posts.
+-- This file exists so `supabase db reset` has a conventional seed entry point.

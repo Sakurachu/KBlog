@@ -1,65 +1,110 @@
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowDown, ArrowRight, Sparkles } from "lucide-react";
+import { PostCard } from "@/components/post-card";
+import { getCategories, getFeaturedPost, getPublishedPosts } from "@/lib/data";
+import { formatDate } from "@/lib/format";
 
-export default function Home() {
+export default async function Home() {
+  const [categories, featured, posts] = await Promise.all([
+    getCategories(),
+    getFeaturedPost(),
+    getPublishedPosts({ limit: 7 }),
+  ]);
+  const latest = posts.filter((post) => post.id !== featured?.id).slice(0, 6);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    <main>
+      <section className="home-hero">
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+          src="/images/writing-desk.jpg"
+          alt="阳光下的笔记本与书桌"
+          fill
+          loading="eager"
+          sizes="100vw"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+        <div className="hero-shade" />
+        <div className="page-shell hero-content">
+          <p className="eyebrow">个人记录 / 生活观察 / 技术实践</p>
+          <h1>Kairos</h1>
+          <p className="hero-copy">
+            在信息匆忙经过之前，留下一点真实的思考、实践与生活片段。
           </p>
+          <Link className="hero-link" href="#latest">
+            开始阅读 <ArrowDown size={18} aria-hidden="true" />
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      <section className="category-band" aria-labelledby="category-heading">
+        <div className="page-shell">
+          <div className="section-heading compact-heading">
+            <p className="eyebrow" id="category-heading">浏览分区</p>
+            <Link href="/sections">全部分区 <ArrowRight size={15} /></Link>
+          </div>
+          <div className="category-grid">
+            {categories.map((category, index) => (
+              <Link
+                className={`category-item accent-${category.accent}`}
+                href={`/sections/${category.slug}`}
+                key={category.id}
+              >
+                <span className="category-index">0{index + 1}</span>
+                <div>
+                  <h2>{category.name}</h2>
+                  <p>{category.description}</p>
+                </div>
+                <ArrowRight size={20} aria-hidden="true" />
+              </Link>
+            ))}
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {featured && (
+        <section className="featured-section">
+          <div className="page-shell featured-layout">
+            <Link className="featured-image" href={`/posts/${featured.slug}`} tabIndex={-1}>
+              <Image
+                src={featured.cover_image}
+                alt=""
+                fill
+                sizes="(max-width: 800px) 100vw, 58vw"
+              />
+            </Link>
+            <div className="featured-copy">
+              <p className="eyebrow"><Sparkles size={15} /> 本期精选</p>
+              <h2><Link href={`/posts/${featured.slug}`}>{featured.title}</Link></h2>
+              <p>{featured.excerpt}</p>
+              <div className="post-meta">
+                <span>{featured.category.name}</span>
+                <span>{formatDate(featured.published_at)}</span>
+                <span>{featured.reading_time} 分钟阅读</span>
+              </div>
+              <Link className="primary-button" href={`/posts/${featured.slug}`}>
+                阅读全文 <ArrowRight size={17} />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="latest-section page-shell" id="latest">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">最近更新</p>
+            <h2>新近写下的文章</h2>
+          </div>
+          <p>不定期更新，记录此刻真正关心的事。</p>
+        </div>
+        {latest.length ? (
+          <div className="post-grid">
+            {latest.map((post) => <PostCard post={post} key={post.id} />)}
+          </div>
+        ) : (
+          <div className="empty-state"><p>更多文章正在路上。</p></div>
+        )}
+      </section>
+    </main>
   );
 }
