@@ -3,8 +3,15 @@ import {
   editorialCategories,
   editorialPosts,
 } from "@/lib/editorial-data";
+import {
+  processAtlasCategory,
+  processAtlasPosts,
+} from "@/lib/process-atlas-data";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import type { Category, Comment, Post, Profile } from "@/lib/types";
+
+const localCategories = [processAtlasCategory, ...editorialCategories];
+const localPosts = [...processAtlasPosts, ...editorialPosts];
 
 const postSelect = `
   id, title, slug, excerpt, content, cover_image, status, reading_time,
@@ -32,7 +39,7 @@ export const getCurrentUser = cache(async () => {
 });
 
 export const getCategories = cache(async (): Promise<Category[]> => {
-  if (!hasSupabaseEnv()) return editorialCategories;
+  if (!hasSupabaseEnv()) return localCategories;
   const supabase = await createClient();
   const { data } = await supabase!
     .from("categories")
@@ -40,10 +47,10 @@ export const getCategories = cache(async (): Promise<Category[]> => {
     .order("sort_order");
 
   const databaseCategories = (data ?? []) as Category[];
-  const editorialSlugs = new Set(editorialCategories.map((category) => category.slug));
+  const editorialSlugs = new Set(localCategories.map((category) => category.slug));
 
   return [
-    ...editorialCategories,
+    ...localCategories,
     ...databaseCategories.filter((category) => !editorialSlugs.has(category.slug)),
   ];
 });
@@ -52,12 +59,12 @@ export async function getPublishedPosts(options?: {
   category?: string;
   limit?: number;
 }): Promise<Post[]> {
-  const localPosts = options?.category
-    ? editorialPosts.filter((post) => post.category.slug === options.category)
-    : editorialPosts;
+  const filteredLocalPosts = options?.category
+    ? localPosts.filter((post) => post.category.slug === options.category)
+    : localPosts;
 
   if (!hasSupabaseEnv()) {
-    return localPosts.slice(0, options?.limit ?? localPosts.length);
+    return filteredLocalPosts.slice(0, options?.limit ?? filteredLocalPosts.length);
   }
 
   const supabase = await createClient();
@@ -75,9 +82,9 @@ export async function getPublishedPosts(options?: {
   }
   const { data } = await query;
   const databasePosts = (data ?? []) as unknown as Post[];
-  const editorialSlugs = new Set(localPosts.map((post) => post.slug));
+  const editorialSlugs = new Set(filteredLocalPosts.map((post) => post.slug));
   const combined = [
-    ...localPosts,
+    ...filteredLocalPosts,
     ...databasePosts.filter((post) => !editorialSlugs.has(post.slug)),
   ].sort((a, b) => {
     const aTime = a.published_at ? new Date(a.published_at).getTime() : 0;
@@ -94,7 +101,7 @@ export async function getFeaturedPost() {
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  const editorialPost = editorialPosts.find((post) => post.slug === slug);
+  const editorialPost = localPosts.find((post) => post.slug === slug);
   if (editorialPost) return editorialPost;
   if (!hasSupabaseEnv()) return null;
 
@@ -146,7 +153,7 @@ export async function getStudioData() {
 }
 
 export async function getPostById(id: string): Promise<Post | null> {
-  const editorialPost = editorialPosts.find((post) => post.id === id);
+  const editorialPost = localPosts.find((post) => post.id === id);
   if (editorialPost) return editorialPost;
   const supabase = await createClient();
   if (!supabase) return null;

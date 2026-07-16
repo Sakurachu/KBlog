@@ -6,6 +6,7 @@ import { CommentForm } from "@/components/comment-form";
 import { MarkdownContent } from "@/components/markdown-content";
 import { getComments, getCurrentUser, getPostBySlug } from "@/lib/data";
 import { isEditorialPostId } from "@/lib/editorial-data";
+import { isProcessAtlasPostId } from "@/lib/process-atlas-data";
 import { formatDate } from "@/lib/format";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -21,7 +22,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const post = await getPostBySlug(slug);
   if (!post || post.status !== "published") notFound();
 
-  const isEditorial = isEditorialPostId(post.id);
+  const isEditorial = isEditorialPostId(post.id) || isProcessAtlasPostId(post.id);
   const comments = isEditorial ? [] : await getComments(post.id);
   const { user } = isEditorial ? { user: null } : await getCurrentUser();
 
