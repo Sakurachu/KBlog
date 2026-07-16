@@ -1,16 +1,30 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { signInAction, signUpAction } from "@/app/actions";
+import {
+  requestPasswordResetAction,
+  signInAction,
+  signUpAction,
+} from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import type { ActionState } from "@/lib/types";
 
 const initialState: ActionState = {};
 
-export function AuthPanel({ nextPath = "/" }: { nextPath?: string }) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+export function AuthPanel({
+  nextPath = "/",
+  pageError,
+}: {
+  nextPath?: string;
+  pageError?: string;
+}) {
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [loginState, loginAction] = useActionState(signInAction, initialState);
   const [registerState, registerAction] = useActionState(signUpAction, initialState);
+  const [resetState, resetAction] = useActionState(
+    requestPasswordResetAction,
+    initialState,
+  );
 
   return (
     <div className="auth-panel">
@@ -18,7 +32,7 @@ export function AuthPanel({ nextPath = "/" }: { nextPath?: string }) {
         <button
           type="button"
           role="tab"
-          aria-selected={mode === "login"}
+          aria-selected={mode !== "register"}
           onClick={() => setMode("login")}
         >
           登录
@@ -32,6 +46,8 @@ export function AuthPanel({ nextPath = "/" }: { nextPath?: string }) {
           注册
         </button>
       </div>
+
+      {pageError && <p className="form-message error auth-page-message">{pageError}</p>}
 
       {mode === "login" ? (
         <form action={loginAction} className="stack-form">
@@ -50,10 +66,19 @@ export function AuthPanel({ nextPath = "/" }: { nextPath?: string }) {
               required
             />
           </label>
+          <div className="form-link-row">
+            <button
+              className="inline-link-button"
+              type="button"
+              onClick={() => setMode("forgot")}
+            >
+              忘记密码？
+            </button>
+          </div>
           {loginState.error && <p className="form-message error">{loginState.error}</p>}
           <SubmitButton>登录</SubmitButton>
         </form>
-      ) : (
+      ) : mode === "register" ? (
         <form action={registerAction} className="stack-form">
           <label>
             昵称
@@ -80,6 +105,31 @@ export function AuthPanel({ nextPath = "/" }: { nextPath?: string }) {
             <p className="form-message success">{registerState.success}</p>
           )}
           <SubmitButton>创建账号</SubmitButton>
+        </form>
+      ) : (
+        <form action={resetAction} className="stack-form">
+          <div className="auth-form-heading">
+            <strong>找回密码</strong>
+            <span>输入注册邮箱，我们会发送一次性重置链接。</span>
+          </div>
+          <label>
+            邮箱
+            <input name="email" type="email" autoComplete="email" required />
+          </label>
+          {resetState.error && (
+            <p className="form-message error">{resetState.error}</p>
+          )}
+          {resetState.success && (
+            <p className="form-message success">{resetState.success}</p>
+          )}
+          <SubmitButton>发送重置邮件</SubmitButton>
+          <button
+            className="inline-link-button form-back-button"
+            type="button"
+            onClick={() => setMode("login")}
+          >
+            返回登录
+          </button>
         </form>
       )}
     </div>

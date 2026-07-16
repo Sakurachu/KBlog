@@ -4,9 +4,19 @@ import { getCurrentUser } from "@/lib/data";
 
 export const metadata = { title: "登录或注册" };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; error?: string }>;
+}) {
   const [{ user }, query] = await Promise.all([getCurrentUser(), searchParams]);
   const nextPath = query.next?.startsWith("/") && !query.next.startsWith("//") ? query.next : "/";
+  const pageError =
+    query.error === "recovery"
+      ? "重置链接无效或已过期，请重新发送重置邮件。"
+      : query.error === "confirm"
+        ? "邮件链接验证失败，请重新发送邮件后再试。"
+        : undefined;
   if (user) redirect(nextPath);
 
   return (
@@ -21,7 +31,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <p>它能减少自动垃圾评论，同时让你保留稳定的读者身份。</p>
           </div>
         </section>
-        <AuthPanel nextPath={nextPath} />
+        <AuthPanel nextPath={nextPath} pageError={pageError} />
       </div>
     </main>
   );

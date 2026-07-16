@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Edit3, MessageCircle, Plus, ScrollText } from "lucide-react";
+import { Edit3, KeyRound, MessageCircle, Plus, ScrollText } from "lucide-react";
 import { redirect } from "next/navigation";
 import { deleteCommentAction, deletePostAction } from "@/app/actions";
 import { ConfirmButton } from "@/components/confirm-button";
+import { PasswordForm } from "@/components/password-form";
 import { getCurrentUser, getStudioData } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 
@@ -83,6 +84,20 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
             );
           })}
           {!comments.length && <p className="table-empty">暂无评论。</p>}
+        </div>
+      </section>
+
+      <section className="studio-section studio-security-section">
+        <div className="studio-section-heading">
+          <h2><KeyRound size={20} aria-hidden="true" /> 账号安全</h2>
+          <span>{user.email}</span>
+        </div>
+        <div className="studio-security-layout">
+          <div>
+            <strong>修改登录密码</strong>
+            <p>保存后，新密码会立即用于此管理员账号。</p>
+          </div>
+          <PasswordForm compact />
         </div>
       </section>
     </main>

@@ -16,6 +16,14 @@ function safePath(value: string, fallback = "/") {
   return value.startsWith("/") && !value.startsWith("//") ? value : fallback;
 }
 
+async function siteOrigin() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (configured) return configured;
+
+  const headerStore = await headers();
+  return headerStore.get("origin") || "http://localhost:3000";
+}
+
 async function requireAdmin() {
   const { user, profile } = await getCurrentUser();
   if (!user || profile?.role !== "admin") redirect("/login?next=/studio");
@@ -55,9 +63,7 @@ export async function signUpAction(
   }
   if (password.length < 8) return { error: "密码至少需要 8 个字符。" };
 
-  const headerStore = await headers();
-  const origin =
-    headerStore.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const origin = await siteOrigin();
   const { error } = await supabase.auth.signUp({
     email,
     password,
@@ -69,6 +75,51 @@ export async function signUpAction(
 
   if (error) return { error: error.message };
   return { success: "注册成功。请打开验证邮件，验证后即可登录评论。" };
+}
+
+export async function requestPasswordResetAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const email = field(formData, "email");
+  const supabase = await createClient();
+
+  if (!supabase) return { error: "请先配置 Supabase 环境变量。" };
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "请输入有效的邮箱地址。" };
+
+  const origin = await siteOrigin();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/confirm?next=/reset-password`,
+  });
+
+  if (error) return { error: "暂时无法发送重置邮件，请稍后再试。" };
+  return {
+    success: "如果该邮箱已注册，重置密码邮件将在几分钟内送达。",
+  };
+}
+
+export async function updatePasswordAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const password = field(formData, "password");
+  const confirmPassword = field(formData, "confirmPassword");
+  const supabase = await createClient();
+
+  if (!supabase) return { error: "请先配置 Supabase 环境变量。" };
+  if (password.length < 8) return { error: "新密码至少需要 8 个字符。" };
+  if (password !== confirmPassword) return { error: "两次输入的密码不一致。" };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "重置链接已失效，请重新申请重置邮件。" };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: "密码更新失败，请更换密码或重新申请重置邮件。" };
+
+  revalidatePath("/", "layout");
+  return { success: "密码已更新。之后请使用新密码登录。" };
 }
 
 export async function signOutAction() {
