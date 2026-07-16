@@ -6,16 +6,18 @@ export function SiteFooter() {
       <div className="page-shell footer-inner">
         <div>
           <Link className="brand brand-light" href="/">
-            Kairos<span>.</span>
+            Kairos<span>·Semi</span>
           </Link>
-          <p>在恰好的时刻，记录值得留下的事。</p>
+          <p>记录精密制造里每一个可测量、可补偿、可验证的偏差。</p>
         </div>
         <div className="footer-links">
           <Link href="/sections">浏览分区</Link>
           <Link href="/login">读者登录</Link>
-          <a href="mailto:hello@example.com">联系</a>
+          <a href="https://commons.wikimedia.org/wiki/File:Semiconductor_Wafer_of_Microelectronics.jpg">
+            DrHughManning / CC BY-SA 4.0
+          </a>
         </div>
-        <p className="copyright">© {new Date().getFullYear()} Kairos</p>
+        <p className="copyright">© {new Date().getFullYear()} Kairos Semi</p>
       </div>
     </footer>
   );

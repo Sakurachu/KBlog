@@ -17,18 +17,18 @@ export default async function Home() {
     <main>
       <section className="home-hero">
         <Image
-          src="/images/writing-desk.jpg"
-          alt="阳光下的笔记本与书桌"
+          src="/images/semiconductor-wafer.webp"
+          alt="布满微电子测试结构的十二英寸晶圆"
           fill
           loading="eager"
           sizes="100vw"
         />
         <div className="hero-shade" />
         <div className="page-shell hero-content">
-          <p className="eyebrow">个人记录 / 生活观察 / 技术实践</p>
-          <h1>Kairos</h1>
+          <p className="eyebrow">Semiconductor Alignment Notes</p>
+          <h1>精密对准</h1>
           <p className="hero-copy">
-            在信息匆忙经过之前，留下一点真实的思考、实践与生活片段。
+            从微米级装配到纳米级 Overlay，拆解视觉、运动、标定与工艺误差的完整链路。
           </p>
           <Link className="hero-link" href="#latest">
             开始阅读 <ArrowDown size={18} aria-hidden="true" />
@@ -92,10 +92,10 @@ export default async function Home() {
       <section className="latest-section page-shell" id="latest">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">最近更新</p>
-            <h2>新近写下的文章</h2>
+            <p className="eyebrow">专题文章</p>
+            <h2>对准能力与工艺现场</h2>
           </div>
-          <p>不定期更新，记录此刻真正关心的事。</p>
+          <p>围绕对象、精度、误差源、补偿方法和验收边界展开。</p>
         </div>
         {latest.length ? (
           <div className="post-grid">

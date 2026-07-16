@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { CommentForm } from "@/components/comment-form";
 import { MarkdownContent } from "@/components/markdown-content";
 import { getComments, getCurrentUser, getPostBySlug } from "@/lib/data";
+import { isEditorialPostId } from "@/lib/editorial-data";
 import { formatDate } from "@/lib/format";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -20,7 +21,9 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const post = await getPostBySlug(slug);
   if (!post || post.status !== "published") notFound();
 
-  const [comments, { user }] = await Promise.all([getComments(post.id), getCurrentUser()]);
+  const isEditorial = isEditorialPostId(post.id);
+  const comments = isEditorial ? [] : await getComments(post.id);
+  const { user } = isEditorial ? { user: null } : await getCurrentUser();
 
   return (
     <main className="article-page">
@@ -37,7 +40,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           <div className="post-meta article-meta">
             <span>{formatDate(post.published_at)}</span>
             <span><Clock3 size={15} /> {post.reading_time} 分钟阅读</span>
-            <span><MessageCircle size={15} /> {comments.length} 条评论</span>
+            {!isEditorial && <span><MessageCircle size={15} /> {comments.length} 条评论</span>}
           </div>
         </div>
       </header>
@@ -53,30 +56,32 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
       <article className="article-body page-shell">
         <MarkdownContent content={post.content} />
       </article>
-      <section className="comments-section">
-        <div className="page-shell comments-inner">
-          <div className="comments-heading">
-            <p className="eyebrow">Discussion</p>
-            <h2>评论 <span>{comments.length}</span></h2>
-          </div>
-          <CommentForm postId={post.id} postSlug={post.slug} signedIn={Boolean(user)} />
-          <div className="comment-list">
-            {comments.map((comment) => (
-              <article className="comment" key={comment.id}>
-                <div className="avatar">{comment.profile?.display_name?.slice(0, 1) || "读"}</div>
-                <div>
-                  <div className="comment-meta">
-                    <strong>{comment.profile?.display_name || "读者"}</strong>
-                    <time>{formatDate(comment.created_at)}</time>
+      {!isEditorial && (
+        <section className="comments-section">
+          <div className="page-shell comments-inner">
+            <div className="comments-heading">
+              <p className="eyebrow">Discussion</p>
+              <h2>评论 <span>{comments.length}</span></h2>
+            </div>
+            <CommentForm postId={post.id} postSlug={post.slug} signedIn={Boolean(user)} />
+            <div className="comment-list">
+              {comments.map((comment) => (
+                <article className="comment" key={comment.id}>
+                  <div className="avatar">{comment.profile?.display_name?.slice(0, 1) || "读"}</div>
+                  <div>
+                    <div className="comment-meta">
+                      <strong>{comment.profile?.display_name || "读者"}</strong>
+                      <time>{formatDate(comment.created_at)}</time>
+                    </div>
+                    <p>{comment.content}</p>
                   </div>
-                  <p>{comment.content}</p>
-                </div>
-              </article>
-            ))}
-            {!comments.length && <p className="empty-comment">还没有评论，来留下第一个想法。</p>}
+                </article>
+              ))}
+              {!comments.length && <p className="empty-comment">还没有评论，来留下第一个想法。</p>}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </main>
   );
 }

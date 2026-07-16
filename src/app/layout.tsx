@@ -6,15 +6,15 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: {
-    default: "Kairos | 在恰好的时刻记录",
-    template: "%s | Kairos",
+    default: "Kairos Semi | 精密制造对准笔记",
+    template: "%s | Kairos Semi",
   },
-  description: "一个关于技术、生活与日常观察的个人博客。",
+  description: "聚焦半导体、先进封装与显示制造的精密视觉对准专题。",
   openGraph: {
     type: "website",
     locale: "zh_CN",
-    siteName: "Kairos",
-    images: ["/images/writing-desk.jpg"],
+    siteName: "Kairos Semi",
+    images: ["/images/semiconductor-wafer.webp"],
   },
 };
 

@@ -12,8 +12,8 @@ export async function SiteHeader() {
   return (
     <header className="site-header">
       <div className="page-shell header-inner">
-        <Link className="brand" href="/" aria-label="Kairos 首页">
-          Kairos<span>.</span>
+        <Link className="brand" href="/" aria-label="Kairos Semi 首页">
+          Kairos<span>·Semi</span>
         </Link>
         <nav className="main-nav" aria-label="主导航">
           <Link href="/">首页</Link>

@@ -1,5 +1,8 @@
 import { cache } from "react";
-import { mockCategories, mockComments, mockPosts } from "@/lib/mock-data";
+import {
+  editorialCategories,
+  editorialPosts,
+} from "@/lib/editorial-data";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import type { Category, Comment, Post, Profile } from "@/lib/types";
 
@@ -29,25 +32,32 @@ export const getCurrentUser = cache(async () => {
 });
 
 export const getCategories = cache(async (): Promise<Category[]> => {
-  if (!hasSupabaseEnv()) return mockCategories;
+  if (!hasSupabaseEnv()) return editorialCategories;
   const supabase = await createClient();
   const { data } = await supabase!
     .from("categories")
     .select("id, name, slug, description, accent")
     .order("sort_order");
 
-  return (data ?? []) as Category[];
+  const databaseCategories = (data ?? []) as Category[];
+  const editorialSlugs = new Set(editorialCategories.map((category) => category.slug));
+
+  return [
+    ...editorialCategories,
+    ...databaseCategories.filter((category) => !editorialSlugs.has(category.slug)),
+  ];
 });
 
 export async function getPublishedPosts(options?: {
   category?: string;
   limit?: number;
 }): Promise<Post[]> {
+  const localPosts = options?.category
+    ? editorialPosts.filter((post) => post.category.slug === options.category)
+    : editorialPosts;
+
   if (!hasSupabaseEnv()) {
-    const filtered = options?.category
-      ? mockPosts.filter((post) => post.category.slug === options.category)
-      : mockPosts;
-    return filtered.slice(0, options?.limit ?? filtered.length);
+    return localPosts.slice(0, options?.limit ?? localPosts.length);
   }
 
   const supabase = await createClient();
@@ -63,36 +73,30 @@ export async function getPublishedPosts(options?: {
   if (options?.category) {
     query = query.eq("categories.slug", options.category);
   }
-  if (options?.limit) query = query.limit(options.limit);
-
   const { data } = await query;
-  return (data ?? []) as unknown as Post[];
+  const databasePosts = (data ?? []) as unknown as Post[];
+  const editorialSlugs = new Set(localPosts.map((post) => post.slug));
+  const combined = [
+    ...localPosts,
+    ...databasePosts.filter((post) => !editorialSlugs.has(post.slug)),
+  ].sort((a, b) => {
+    const aTime = a.published_at ? new Date(a.published_at).getTime() : 0;
+    const bTime = b.published_at ? new Date(b.published_at).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  return combined.slice(0, options?.limit ?? combined.length);
 }
 
 export async function getFeaturedPost() {
-  if (!hasSupabaseEnv()) {
-    return mockPosts.find((post) => post.featured) ?? mockPosts[0];
-  }
-
-  const supabase = await createClient();
-  const { data } = await supabase!
-    .from("posts")
-    .select(postSelect)
-    .eq("status", "published")
-    .eq("featured", true)
-    .order("published_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (data) return data as unknown as Post;
-  const [latest] = await getPublishedPosts({ limit: 1 });
-  return latest ?? null;
+  const posts = await getPublishedPosts();
+  return posts.find((post) => post.featured) ?? posts[0] ?? null;
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  if (!hasSupabaseEnv()) {
-    return mockPosts.find((post) => post.slug === slug) ?? null;
-  }
+  const editorialPost = editorialPosts.find((post) => post.slug === slug);
+  if (editorialPost) return editorialPost;
+  if (!hasSupabaseEnv()) return null;
 
   const supabase = await createClient();
   const { data } = await supabase!
@@ -105,9 +109,7 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
 }
 
 export async function getComments(postId: string): Promise<Comment[]> {
-  if (!hasSupabaseEnv()) {
-    return mockComments.filter((comment) => comment.post_id === postId);
-  }
+  if (!hasSupabaseEnv()) return [];
 
   const supabase = await createClient();
   const { data } = await supabase!
@@ -144,6 +146,8 @@ export async function getStudioData() {
 }
 
 export async function getPostById(id: string): Promise<Post | null> {
+  const editorialPost = editorialPosts.find((post) => post.id === id);
+  if (editorialPost) return editorialPost;
   const supabase = await createClient();
   if (!supabase) return null;
   const { data } = await supabase
