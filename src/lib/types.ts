@@ -41,6 +41,18 @@ export type Comment = {
   profile: Pick<Profile, "display_name"> | null;
 };
 
+export type PostSummary = Pick<
+  Post,
+  | "id"
+  | "title"
+  | "slug"
+  | "excerpt"
+  | "cover_image"
+  | "reading_time"
+  | "published_at"
+  | "category"
+>;
+
 export type ActionState = {
   error?: string;
   success?: string;

@@ -28,13 +28,18 @@ export function PostEditor({
         <input
           className="title-input"
           name="title"
+          aria-label="文章标题"
           defaultValue={post?.title}
           placeholder="文章标题"
           maxLength={120}
           required
         />
         <div className="editor-actions">
-          <select name="status" defaultValue={post?.status ?? "draft"} aria-label="发布状态">
+          <select
+            name="status"
+            defaultValue={post?.status ?? "draft"}
+            aria-label="发布状态"
+          >
             <option value="draft">保存为草稿</option>
             <option value="published">立即发布</option>
           </select>
@@ -45,27 +50,64 @@ export function PostEditor({
       <div className="editor-settings">
         <label>
           所属分区
-          <select name="categoryId" defaultValue={post?.category_id ?? ""} required>
-            <option value="" disabled>选择分区</option>
+          <select
+            name="categoryId"
+            defaultValue={post?.category_id ?? ""}
+            required
+          >
+            <option value="" disabled>
+              选择分区
+            </option>
             {categories.map((category) => (
-              <option value={category.id} key={category.id}>{category.name}</option>
+              <option value={category.id} key={category.id}>
+                {category.name}
+              </option>
             ))}
           </select>
         </label>
         <label>
           链接别名
-          <input name="slug" defaultValue={post?.slug} placeholder="留空则根据标题生成" />
+          <input
+            name="slug"
+            defaultValue={post?.slug}
+            placeholder="留空则根据标题生成"
+          />
         </label>
         <label>
           封面
-          <select name="coverImage" defaultValue={post?.cover_image ?? "/images/writing-desk.jpg"}>
+          <select
+            name="coverImage"
+            defaultValue={post?.cover_image ?? "/images/writing-desk.jpg"}
+          >
+            <option value="/images/semiconductor-wafer.webp">半导体晶圆</option>
+            <option value="/images/alignment-map.webp">精密对准能力地图</option>
+            <option value="/images/die-bond-alignment.webp">
+              Die Bond 与 Flip Chip
+            </option>
+            <option value="/images/wafer-overlay.webp">晶圆 Overlay</option>
+            <option value="/images/oled-mask-alignment.webp">
+              OLED 掩膜对准
+            </option>
+            <option value="/images/micro-led-transfer.webp">
+              Micro LED 巨量转移
+            </option>
+            <option value="/images/process-atlas/packaging-test/cover.webp">
+              半导体封测图谱
+            </option>
+            <option value="/images/process-atlas/mlcc/cover.webp">
+              MLCC 工艺图谱
+            </option>
             <option value="/images/writing-desk.jpg">书桌与记录</option>
             <option value="/images/architecture.jpg">建筑与光影</option>
             <option value="/images/coast.jpg">海岸与散步</option>
           </select>
         </label>
         <label className="checkbox-label">
-          <input name="featured" type="checkbox" defaultChecked={post?.featured} />
+          <input
+            name="featured"
+            type="checkbox"
+            defaultChecked={post?.featured}
+          />
           首页精选
         </label>
       </div>
@@ -81,17 +123,26 @@ export function PostEditor({
         />
       </label>
 
-      <div className="editor-tabs" role="tablist" aria-label="正文模式">
-        <button type="button" role="tab" aria-selected={mode === "write"} onClick={() => setMode("write")}>
+      <div className="editor-tabs" role="group" aria-label="正文模式">
+        <button
+          type="button"
+          aria-pressed={mode === "write"}
+          onClick={() => setMode("write")}
+        >
           <FileText size={16} aria-hidden="true" /> 编辑
         </button>
-        <button type="button" role="tab" aria-selected={mode === "preview"} onClick={() => setMode("preview")}>
+        <button
+          type="button"
+          aria-pressed={mode === "preview"}
+          onClick={() => setMode("preview")}
+        >
           <Eye size={16} aria-hidden="true" /> 预览
         </button>
       </div>
       {mode === "write" ? (
         <textarea
           className="content-editor"
+          aria-label="Markdown 正文"
           name="content"
           value={content}
           onChange={(event) => setContent(event.target.value)}
@@ -100,11 +151,19 @@ export function PostEditor({
         />
       ) : (
         <div className="editor-preview">
-          {content ? <MarkdownContent content={content} /> : <p className="muted">暂无预览内容</p>}
+          {content ? (
+            <MarkdownContent content={content} />
+          ) : (
+            <p className="muted">暂无预览内容</p>
+          )}
           <input type="hidden" name="content" value={content} />
         </div>
       )}
-      {state.error && <p className="form-message error">{state.error}</p>}
+      {state.error && (
+        <p className="form-message error" role="alert">
+          {state.error}
+        </p>
+      )}
     </form>
   );
 }

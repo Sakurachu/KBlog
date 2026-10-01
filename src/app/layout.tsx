@@ -4,7 +4,9 @@ import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  ),
   title: {
     default: "Kairos Semi | 精密制造对准笔记",
     template: "%s | Kairos Semi",
@@ -18,10 +20,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN">
       <body>
+        <a className="skip-link" href="#main-content">
+          跳到主要内容
+        </a>
         <SiteHeader />
         {children}
         <SiteFooter />

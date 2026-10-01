@@ -2,33 +2,53 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Clock3 } from "lucide-react";
 import { formatDate } from "@/lib/format";
-import type { Post } from "@/lib/types";
+import type { PostSummary } from "@/lib/types";
 
-export function PostCard({ post, priority = false }: { post: Post; priority?: boolean }) {
+export function PostCard({
+  post,
+  priority = false,
+}: {
+  post: PostSummary;
+  priority?: boolean;
+}) {
   return (
     <article className="post-card">
-      <Link className="post-card-image" href={`/posts/${post.slug}`} tabIndex={-1}>
+      <Link
+        className="post-card-image"
+        href={`/posts/${post.slug}`}
+        tabIndex={-1}
+        aria-hidden="true"
+      >
         <Image
           src={post.cover_image}
           alt=""
           fill
           loading={priority ? "eager" : "lazy"}
-          sizes="(max-width: 720px) 100vw, 33vw"
+          sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 400px"
         />
+        <span className="image-read-time">
+          <Clock3 size={13} aria-hidden="true" /> {post.reading_time} 分钟阅读
+        </span>
       </Link>
       <div className="post-card-body">
         <div className="post-meta">
-          <Link href={`/sections/${post.category.slug}`}>{post.category.name}</Link>
-          <span>{formatDate(post.published_at)}</span>
-          <span className="reading-time">
-            <Clock3 size={14} aria-hidden="true" /> {post.reading_time} 分钟
-          </span>
+          <Link href={`/sections/${post.category.slug}`}>
+            {post.category.name}
+          </Link>
+          <time dateTime={post.published_at ?? undefined}>
+            {formatDate(post.published_at)}
+          </time>
         </div>
+        <span className="sr-only">{post.reading_time} 分钟阅读</span>
         <h3>
           <Link href={`/posts/${post.slug}`}>{post.title}</Link>
         </h3>
         <p>{post.excerpt}</p>
-        <Link className="read-link" href={`/posts/${post.slug}`}>
+        <Link
+          className="read-link"
+          href={`/posts/${post.slug}`}
+          aria-label={`阅读：${post.title}`}
+        >
           阅读文章 <ArrowUpRight size={16} aria-hidden="true" />
         </Link>
       </div>

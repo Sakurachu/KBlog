@@ -1,47 +1,92 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Clock3, MessageCircle } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Clock3, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { CommentForm } from "@/components/comment-form";
 import { MarkdownContent } from "@/components/markdown-content";
-import { getComments, getCurrentUser, getPostBySlug } from "@/lib/data";
+import { ArticleReader } from "@/components/article-reader";
+import { PostCard } from "@/components/post-card";
+import { getArticleHeadings } from "@/lib/article-headings";
+import {
+  getComments,
+  getCurrentUser,
+  getPostBySlug,
+  getPublishedPosts,
+} from "@/lib/data";
 import { isEditorialPostId } from "@/lib/editorial-data";
 import { isProcessAtlasPostId } from "@/lib/process-atlas-data";
 import { formatDate } from "@/lib/format";
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
   return post
-    ? { title: post.title, description: post.excerpt, openGraph: { images: [post.cover_image] } }
+    ? {
+        title: post.title,
+        description: post.excerpt,
+        openGraph: { images: [post.cover_image] },
+      }
     : { title: "文章未找到" };
 }
 
-export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
   if (!post || post.status !== "published") notFound();
 
-  const isEditorial = isEditorialPostId(post.id) || isProcessAtlasPostId(post.id);
+  const isEditorial =
+    isEditorialPostId(post.id) || isProcessAtlasPostId(post.id);
   const comments = isEditorial ? [] : await getComments(post.id);
   const { user } = isEditorial ? { user: null } : await getCurrentUser();
+  const otherPosts = (await getPublishedPosts()).filter(
+    (item) => item.id !== post.id,
+  );
+  const related = [
+    ...otherPosts.filter((item) => item.category.slug === post.category.slug),
+    ...otherPosts.filter((item) => item.category.slug !== post.category.slug),
+  ].slice(0, 3);
 
   return (
-    <main className="article-page">
+    <main className="article-page" id="main-content" tabIndex={-1}>
       <header className="article-header page-shell">
-        <Link className="back-link" href={`/sections/${post.category.slug}`}>
-          <ArrowLeft size={16} /> 返回{post.category.name}
-        </Link>
+        <nav className="article-breadcrumb" aria-label="面包屑导航">
+          <Link href="/">首页</Link>
+          <span>/</span>
+          <Link href={`/sections/${post.category.slug}`}>
+            {post.category.name}
+          </Link>
+          <span>/</span>
+          <span>正文</span>
+        </nav>
         <div className="article-heading">
-          <Link className="article-category" href={`/sections/${post.category.slug}`}>
+          <Link
+            className="article-category"
+            href={`/sections/${post.category.slug}`}
+          >
             {post.category.name}
           </Link>
           <h1>{post.title}</h1>
           <p>{post.excerpt}</p>
           <div className="post-meta article-meta">
-            <span>{formatDate(post.published_at)}</span>
-            <span><Clock3 size={15} /> {post.reading_time} 分钟阅读</span>
-            {!isEditorial && <span><MessageCircle size={15} /> {comments.length} 条评论</span>}
+            <time dateTime={post.published_at ?? undefined}>
+              {formatDate(post.published_at)}
+            </time>
+            <span>
+              <Clock3 size={15} /> {post.reading_time} 分钟阅读
+            </span>
+            {!isEditorial && (
+              <span>
+                <MessageCircle size={15} /> {comments.length} 条评论
+              </span>
+            )}
           </div>
         </div>
       </header>
@@ -54,21 +99,56 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           sizes="(max-width: 1100px) 100vw, 1100px"
         />
       </div>
-      <article className="article-body page-shell">
+      <ArticleReader headings={getArticleHeadings(post.content)}>
         <MarkdownContent content={post.content} />
-      </article>
+      </ArticleReader>
+      {related.length > 0 && (
+        <section
+          className="related-posts page-shell"
+          aria-labelledby="related-heading"
+        >
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Keep exploring / 延伸阅读</p>
+              <h2 id="related-heading">沿着这条线索，继续读</h2>
+            </div>
+            <Link
+              className="section-all-link"
+              href={`/sections/${post.category.slug}`}
+            >
+              浏览本专题 <ArrowUpRight size={16} />
+            </Link>
+          </div>
+          <div className="post-grid">
+            {related.map((item) => (
+              <PostCard key={item.id} post={item} />
+            ))}
+          </div>
+          <Link className="back-link" href={`/sections/${post.category.slug}`}>
+            <ArrowLeft size={16} /> 返回{post.category.name}
+          </Link>
+        </section>
+      )}
       {!isEditorial && (
         <section className="comments-section">
           <div className="page-shell comments-inner">
             <div className="comments-heading">
               <p className="eyebrow">Discussion</p>
-              <h2>评论 <span>{comments.length}</span></h2>
+              <h2>
+                评论 <span>{comments.length}</span>
+              </h2>
             </div>
-            <CommentForm postId={post.id} postSlug={post.slug} signedIn={Boolean(user)} />
+            <CommentForm
+              postId={post.id}
+              postSlug={post.slug}
+              signedIn={Boolean(user)}
+            />
             <div className="comment-list">
               {comments.map((comment) => (
                 <article className="comment" key={comment.id}>
-                  <div className="avatar">{comment.profile?.display_name?.slice(0, 1) || "读"}</div>
+                  <div className="avatar">
+                    {comment.profile?.display_name?.slice(0, 1) || "读"}
+                  </div>
                   <div>
                     <div className="comment-meta">
                       <strong>{comment.profile?.display_name || "读者"}</strong>
@@ -78,7 +158,9 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
                   </div>
                 </article>
               ))}
-              {!comments.length && <p className="empty-comment">还没有评论，来留下第一个想法。</p>}
+              {!comments.length && (
+                <p className="empty-comment">还没有评论，来留下第一个想法。</p>
+              )}
             </div>
           </div>
         </section>
