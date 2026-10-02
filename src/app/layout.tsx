@@ -2,21 +2,23 @@ import type { Metadata } from "next";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
+import "./columns.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   ),
   title: {
-    default: "Kairos Semi | 精密制造对准笔记",
-    template: "%s | Kairos Semi",
+    default: "Kairos | 技术、随笔与生活记录",
+    template: "%s | Kairos",
   },
-  description: "聚焦半导体、先进封装与显示制造的精密视觉对准专题。",
+  description:
+    "认真探索，也自在记录。关于精密制造的技术笔记、个人随笔与日常生活。",
   openGraph: {
     type: "website",
     locale: "zh_CN",
-    siteName: "Kairos Semi",
-    images: ["/images/semiconductor-wafer.webp"],
+    siteName: "Kairos",
+    images: ["/images/writing-desk.jpg"],
   },
 };
 

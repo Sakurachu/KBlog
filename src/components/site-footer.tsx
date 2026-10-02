@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { ArrowUpRight, Crosshair } from "lucide-react";
+import { ArrowUpRight, Feather } from "lucide-react";
+import { getColumns } from "@/lib/data";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const columns = await getColumns();
   return (
     <footer className="site-footer">
       <div className="page-shell">
@@ -9,52 +11,53 @@ export function SiteFooter() {
           <div className="footer-brand">
             <Link className="brand brand-light" href="/">
               <span className="brand-mark">
-                <Crosshair size={23} strokeWidth={1.5} aria-hidden="true" />
+                <Feather size={23} strokeWidth={1.5} aria-hidden="true" />
               </span>
               <span className="brand-type">
-                Kairos<span>·Semi</span>
-                <small>精密制造观察笔记</small>
+                Kairos<span>·Journal</span>
+                <small>技术 · 随笔 · 生活</small>
               </span>
             </Link>
             <p>
-              在微小偏差里，看见整个系统。
+              认真探索，也自在记录。
               <br />
-              记录每一个可测量、可补偿、可验证的细节。
+              给好奇心和个人表达，留一个地方。
             </p>
           </div>
-          <nav className="footer-links" aria-label="页脚专题导航">
-            <span>持续观察</span>
-            <Link href="/sections/alignment-basics">对准基础</Link>
-            <Link href="/sections/advanced-packaging">先进封装</Link>
-            <Link href="/sections/display-manufacturing">显示制造</Link>
+          <nav className="footer-links" aria-label="页脚专栏导航">
+            <span>沿着兴趣阅读</span>
+            {columns.map((column) => (
+              <Link key={column.slug} href={`/columns/${column.slug}`}>
+                {column.name}
+              </Link>
+            ))}
           </nav>
           <nav className="footer-links" aria-label="页脚站点导航">
             <span>继续探索</span>
-            <Link href="/sections/process-atlas">
-              精密工艺图解 <ArrowUpRight size={14} />
+            <Link href="/columns">
+              全部专栏 <ArrowUpRight size={14} />
             </Link>
-            <Link href="/sections">全部文章</Link>
-            <Link href="/login">读者登录</Link>
+            <Link href="/sections">文章归档</Link>
+            <Link href="/about">关于我</Link>
           </nav>
           <div className="footer-note">
-            <Crosshair size={28} strokeWidth={1} aria-hidden="true" />
+            <Feather size={28} strokeWidth={1} aria-hidden="true" />
             <p>
-              保持好奇，
+              把值得留住的事，
               <br />
-              把问题再看近一点。
+              写进时间里。
             </p>
           </div>
         </div>
         <div className="footer-bottom">
-          <p className="copyright">© {new Date().getFullYear()} Kairos Semi</p>
+          <p className="copyright">© {new Date().getFullYear()} Kairos</p>
           <a
             className="image-credit"
             href="https://commons.wikimedia.org/wiki/File:Semiconductor_Wafer_of_Microelectronics.jpg"
             target="_blank"
             rel="noreferrer"
           >
-            晶圆摄影：DrHughManning · CC BY-SA 4.0{" "}
-            <ArrowUpRight size={12} aria-hidden="true" />
+            晶圆摄影：DrHughManning · CC BY-SA 4.0 <ArrowUpRight size={12} />
           </a>
           <a className="back-top" href="#main-content">
             回到顶部 ↑

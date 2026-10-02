@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { Edit3, KeyRound, MessageCircle, Plus, ScrollText } from "lucide-react";
+import {
+  Edit3,
+  KeyRound,
+  Layers3,
+  MessageCircle,
+  Plus,
+  ScrollText,
+} from "lucide-react";
 import { redirect } from "next/navigation";
 import { deleteCommentAction, deletePostAction } from "@/app/actions";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -32,9 +39,14 @@ export default async function StudioPage({
           <h1>写作台</h1>
           <p>{profile.display_name}，这里是文章与讨论的管理入口。</p>
         </div>
-        <Link className="primary-button" href="/studio/new">
-          <Plus size={17} /> 新建文章
-        </Link>
+        <div className="studio-header-actions">
+          <Link className="secondary-button" href="/studio/columns">
+            <Layers3 size={17} /> 专栏管理
+          </Link>
+          <Link className="primary-button" href="/studio/new">
+            <Plus size={17} /> 新建文章
+          </Link>
+        </div>
       </header>
 
       {query.saved && <p className="studio-notice">文章已经保存。</p>}
@@ -67,7 +79,7 @@ export default async function StudioPage({
             <thead>
               <tr>
                 <th>文章</th>
-                <th>分区</th>
+                <th>专栏 / 专题</th>
                 <th>状态</th>
                 <th>更新</th>
                 <th>

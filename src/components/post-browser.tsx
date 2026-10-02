@@ -11,24 +11,31 @@ import {
   X,
 } from "lucide-react";
 import { PostCard } from "@/components/post-card";
-import type { Category, PostSummary } from "@/lib/types";
+import type { Category, Column, PostSummary } from "@/lib/types";
+import { columnForCategory } from "@/lib/columns";
 
 export function PostBrowser({
   posts,
   categories,
   initialQuery = "",
   showCategories = true,
+  columns,
+  filterColumns = false,
+  initialView = "grid",
 }: {
   posts: PostSummary[];
   categories: Category[];
   initialQuery?: string;
   showCategories?: boolean;
+  columns?: Column[];
+  filterColumns?: boolean;
+  initialView?: "grid" | "list";
 }) {
   const [query, setQuery] = useState(initialQuery);
   const deferredQuery = useDeferredValue(query);
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState("latest");
-  const [view, setView] = useState("grid");
+  const [view, setView] = useState(initialView);
   const [visibleCount, setVisibleCount] = useState(9);
   const terms = deferredQuery
     .trim()
@@ -38,9 +45,12 @@ export function PostBrowser({
   const filtered = posts
     .filter((post) => {
       const text =
-        `${post.title} ${post.excerpt} ${post.category.name}`.toLocaleLowerCase();
+        `${post.title} ${post.excerpt} ${post.category.name} ${columnForCategory(post.category, columns).name}`.toLocaleLowerCase();
       return (
-        (category === "all" || post.category.slug === category) &&
+        (category === "all" ||
+          (filterColumns
+            ? columnForCategory(post.category, columns).slug === category
+            : post.category.slug === category)) &&
         terms.every((term) => text.includes(term))
       );
     })
@@ -69,7 +79,11 @@ export function PostBrowser({
   return (
     <div className="post-browser">
       {showCategories && (
-        <div className="filter-tabs" role="group" aria-label="按专题筛选">
+        <div
+          className="filter-tabs"
+          role="group"
+          aria-label={filterColumns ? "按专栏筛选" : "按专题筛选"}
+        >
           <button
             type="button"
             aria-pressed={category === "all"}
@@ -80,7 +94,7 @@ export function PostBrowser({
           >
             全部文章 <span>{posts.length}</span>
           </button>
-          {categories.map((item) => (
+          {(filterColumns ? (columns ?? []) : categories).map((item) => (
             <button
               key={item.id}
               type="button"
@@ -93,8 +107,12 @@ export function PostBrowser({
               {item.name}
               <span>
                 {
-                  posts.filter((post) => post.category.slug === item.slug)
-                    .length
+                  posts.filter(
+                    (post) =>
+                      (filterColumns
+                        ? columnForCategory(post.category, columns).slug
+                        : post.category.slug) === item.slug,
+                  ).length
                 }
               </span>
             </button>
@@ -108,7 +126,7 @@ export function PostBrowser({
             type="search"
             value={query}
             onChange={(event) => updateQuery(event.target.value)}
-            placeholder="搜索标题、关键词或专题…"
+            placeholder="搜索标题、关键词或专栏…"
             aria-label="搜索文章"
           />
           {query && (
@@ -158,19 +176,19 @@ export function PostBrowser({
       <p className="results-count" role="status">
         {query.trim()
           ? `“${query.trim()}” · 找到 ${filtered.length} 篇文章`
-          : `${filtered.length} 篇文章 · 找到下一条值得深入的线索`}
+          : `${filtered.length} 篇文章 · 找一篇想读的文字`}
       </p>
       {filtered.length ? (
         <div className={`post-grid ${view === "list" ? "post-list" : ""}`}>
           {filtered.slice(0, visibleCount).map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard key={post.id} post={post} columns={columns} />
           ))}
         </div>
       ) : (
         <div className="search-empty">
           <SearchX size={32} strokeWidth={1.3} aria-hidden="true" />
           <h3>暂时没有找到相关文章</h3>
-          <p>试试更短的关键词，或浏览其他专题。</p>
+          <p>试试更短的关键词，或选择其他专栏。</p>
           <button
             className="secondary-button"
             type="button"

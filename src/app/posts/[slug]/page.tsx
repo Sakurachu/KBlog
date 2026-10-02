@@ -12,10 +12,12 @@ import {
   getCurrentUser,
   getPostBySlug,
   getPublishedPosts,
+  getColumns,
 } from "@/lib/data";
 import { isEditorialPostId } from "@/lib/editorial-data";
 import { isProcessAtlasPostId } from "@/lib/process-atlas-data";
 import { formatDate } from "@/lib/format";
+import { categoryUrl, columnForCategory } from "@/lib/columns";
 
 export async function generateMetadata({
   params,
@@ -41,13 +43,16 @@ export default async function PostPage({
   const { slug } = await params;
   const post = await getPostBySlug(slug);
   if (!post || post.status !== "published") notFound();
+  const columns = await getColumns();
+  const column = columnForCategory(post.category, columns);
 
   const isEditorial =
     isEditorialPostId(post.id) || isProcessAtlasPostId(post.id);
   const comments = isEditorial ? [] : await getComments(post.id);
   const { user } = isEditorial ? { user: null } : await getCurrentUser();
   const otherPosts = (await getPublishedPosts()).filter(
-    (item) => item.id !== post.id,
+    (item) =>
+      item.id !== post.id && column.categorySlugs.includes(item.category.slug),
   );
   const related = [
     ...otherPosts.filter((item) => item.category.slug === post.category.slug),
@@ -55,21 +60,31 @@ export default async function PostPage({
   ].slice(0, 3);
 
   return (
-    <main className="article-page" id="main-content" tabIndex={-1}>
+    <main
+      className={`article-page theme-${column.theme}`}
+      id="main-content"
+      tabIndex={-1}
+    >
       <header className="article-header page-shell">
         <nav className="article-breadcrumb" aria-label="面包屑导航">
           <Link href="/">首页</Link>
           <span>/</span>
-          <Link href={`/sections/${post.category.slug}`}>
-            {post.category.name}
-          </Link>
+          <Link href={`/columns/${column.slug}`}>{column.name}</Link>
+          {post.category.slug !== column.slug && (
+            <>
+              <span>/</span>
+              <Link href={categoryUrl(post.category, columns)}>
+                {post.category.name}
+              </Link>
+            </>
+          )}
           <span>/</span>
           <span>正文</span>
         </nav>
         <div className="article-heading">
           <Link
             className="article-category"
-            href={`/sections/${post.category.slug}`}
+            href={categoryUrl(post.category, columns)}
           >
             {post.category.name}
           </Link>
@@ -112,20 +127,17 @@ export default async function PostPage({
               <p className="eyebrow">Keep exploring / 延伸阅读</p>
               <h2 id="related-heading">沿着这条线索，继续读</h2>
             </div>
-            <Link
-              className="section-all-link"
-              href={`/sections/${post.category.slug}`}
-            >
-              浏览本专题 <ArrowUpRight size={16} />
+            <Link className="section-all-link" href={`/columns/${column.slug}`}>
+              浏览本专栏 <ArrowUpRight size={16} />
             </Link>
           </div>
           <div className="post-grid">
             {related.map((item) => (
-              <PostCard key={item.id} post={item} />
+              <PostCard key={item.id} post={item} columns={columns} />
             ))}
           </div>
-          <Link className="back-link" href={`/sections/${post.category.slug}`}>
-            <ArrowLeft size={16} /> 返回{post.category.name}
+          <Link className="back-link" href={`/columns/${column.slug}`}>
+            <ArrowLeft size={16} /> 返回{column.name}
           </Link>
         </section>
       )}

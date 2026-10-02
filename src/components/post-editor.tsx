@@ -6,6 +6,7 @@ import { savePostAction } from "@/app/actions";
 import { MarkdownContent } from "@/components/markdown-content";
 import { SubmitButton } from "@/components/submit-button";
 import type { Category, Post } from "@/lib/types";
+import { buildColumns, columnForCategory } from "@/lib/columns";
 
 export function PostEditor({
   categories,
@@ -17,6 +18,14 @@ export function PostEditor({
   const [state, formAction] = useActionState(savePostAction, {});
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [content, setContent] = useState(post?.content ?? "");
+  const [categoryId, setCategoryId] = useState(post?.category_id ?? "");
+  const columns = buildColumns(categories);
+  const selectedCategory = categories.find(
+    (category) => category.id === categoryId,
+  );
+  const column = selectedCategory
+    ? columnForCategory(selectedCategory, columns)
+    : undefined;
 
   return (
     <form action={formAction} className="editor-form">
@@ -49,19 +58,28 @@ export function PostEditor({
 
       <div className="editor-settings">
         <label>
-          所属分区
+          所属专栏 / 专题
           <select
             name="categoryId"
-            defaultValue={post?.category_id ?? ""}
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
             required
           >
             <option value="" disabled>
-              选择分区
+              选择专栏或专题
             </option>
-            {categories.map((category) => (
-              <option value={category.id} key={category.id}>
-                {category.name}
-              </option>
+            {columns.map((item) => (
+              <optgroup label={item.name} key={item.slug}>
+                {categories
+                  .filter((category) =>
+                    item.categorySlugs.includes(category.slug),
+                  )
+                  .map((category) => (
+                    <option value={category.id} key={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+              </optgroup>
             ))}
           </select>
         </label>
@@ -112,6 +130,18 @@ export function PostEditor({
         </label>
       </div>
 
+      {column && (
+        <p className="editor-column-hint" role="status">
+          所属专栏：{column.name} · 文章将使用
+          {column.theme === "precision"
+            ? "精密深绿"
+            : column.theme === "notebook"
+              ? "暖白纸页"
+              : "海蓝漫游"}
+          风格。
+        </p>
+      )}
+
       <label className="excerpt-field">
         摘要
         <textarea
@@ -150,7 +180,9 @@ export function PostEditor({
           required
         />
       ) : (
-        <div className="editor-preview">
+        <div
+          className={`editor-preview ${column ? `theme-${column.theme}` : ""}`}
+        >
           {content ? (
             <MarkdownContent content={content} />
           ) : (

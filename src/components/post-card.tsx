@@ -2,17 +2,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Clock3 } from "lucide-react";
 import { formatDate } from "@/lib/format";
-import type { PostSummary } from "@/lib/types";
+import { categoryUrl, columnForCategory } from "@/lib/columns";
+import type { Column, PostSummary } from "@/lib/types";
 
 export function PostCard({
   post,
   priority = false,
+  columns,
 }: {
   post: PostSummary;
   priority?: boolean;
+  columns?: Column[];
 }) {
+  const column = columnForCategory(post.category, columns);
   return (
-    <article className="post-card">
+    <article className={`post-card theme-${column.theme}`}>
       <Link
         className="post-card-image"
         href={`/posts/${post.slug}`}
@@ -32,7 +36,7 @@ export function PostCard({
       </Link>
       <div className="post-card-body">
         <div className="post-meta">
-          <Link href={`/sections/${post.category.slug}`}>
+          <Link href={categoryUrl(post.category, columns)}>
             {post.category.name}
           </Link>
           <time dateTime={post.published_at ?? undefined}>

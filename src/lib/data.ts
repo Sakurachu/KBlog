@@ -1,16 +1,18 @@
 import { cache } from "react";
-import {
-  editorialCategories,
-  editorialPosts,
-} from "@/lib/editorial-data";
+import { editorialCategories, editorialPosts } from "@/lib/editorial-data";
 import {
   processAtlasCategory,
   processAtlasPosts,
 } from "@/lib/process-atlas-data";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import type { Category, Comment, Post, Profile } from "@/lib/types";
+import { buildColumns, defaultColumnCategories } from "@/lib/columns";
 
-const localCategories = [processAtlasCategory, ...editorialCategories];
+const localCategories = [
+  ...defaultColumnCategories,
+  processAtlasCategory,
+  ...editorialCategories,
+];
 const localPosts = [...processAtlasPosts, ...editorialPosts];
 
 const postSelect = `
@@ -43,17 +45,29 @@ export const getCategories = cache(async (): Promise<Category[]> => {
   const supabase = await createClient();
   const { data } = await supabase!
     .from("categories")
-    .select("id, name, slug, description, accent")
+    .select("id, name, slug, description, accent, sort_order")
     .order("sort_order");
 
   const databaseCategories = (data ?? []) as Category[];
-  const editorialSlugs = new Set(localCategories.map((category) => category.slug));
+  const editorialSlugs = new Set(
+    localCategories.map((category) => category.slug),
+  );
 
   return [
-    ...localCategories,
-    ...databaseCategories.filter((category) => !editorialSlugs.has(category.slug)),
+    ...localCategories.map(
+      (category) =>
+        databaseCategories.find((item) => item.slug === category.slug) ??
+        category,
+    ),
+    ...databaseCategories.filter(
+      (category) => !editorialSlugs.has(category.slug),
+    ),
   ];
 });
+
+export const getColumns = cache(async () =>
+  buildColumns(await getCategories()),
+);
 
 export async function getPublishedPosts(options?: {
   category?: string;
@@ -64,7 +78,10 @@ export async function getPublishedPosts(options?: {
     : localPosts;
 
   if (!hasSupabaseEnv()) {
-    return filteredLocalPosts.slice(0, options?.limit ?? filteredLocalPosts.length);
+    return filteredLocalPosts.slice(
+      0,
+      options?.limit ?? filteredLocalPosts.length,
+    );
   }
 
   const supabase = await createClient();
@@ -136,7 +153,10 @@ export async function getStudioData() {
   if (!supabase) return { posts: [], comments: [] };
 
   const [{ data: posts }, { data: comments }] = await Promise.all([
-    supabase.from("posts").select(postSelect).order("updated_at", { ascending: false }),
+    supabase
+      .from("posts")
+      .select(postSelect)
+      .order("updated_at", { ascending: false }),
     supabase
       .from("comments")
       .select(

@@ -1,3 +1,28 @@
+import type { Post, PostSummary } from "@/lib/types";
+
+export function toPostSummary(post: Post): PostSummary {
+  const {
+    id,
+    title,
+    slug,
+    excerpt,
+    cover_image,
+    reading_time,
+    published_at,
+    category,
+  } = post;
+  return {
+    id,
+    title,
+    slug,
+    excerpt,
+    cover_image,
+    reading_time,
+    published_at,
+    category,
+  };
+}
+
 export function formatDate(date: string | null) {
   if (!date) return "尚未发布";
 
@@ -5,6 +30,7 @@ export function formatDate(date: string | null) {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "Asia/Shanghai",
   }).format(new Date(date));
 }
 

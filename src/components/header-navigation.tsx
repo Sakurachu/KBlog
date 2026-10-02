@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Menu, Search, X } from "lucide-react";
-import type { Category } from "@/lib/types";
+import type { Column } from "@/lib/types";
 
 export function HeaderNavigation({
-  categories,
+  columns,
   account,
 }: {
-  categories: Category[];
+  columns: Column[];
   account: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -20,13 +20,9 @@ export function HeaderNavigation({
   const menuButton = useRef<HTMLButtonElement>(null);
   const links = [
     { href: "/", label: "首页" },
-    { href: "/sections", label: "专题索引" },
-    ...categories
-      .slice(0, 4)
-      .map((category) => ({
-        href: `/sections/${category.slug}`,
-        label: category.name,
-      })),
+    { href: "/columns", label: "专栏" },
+    { href: "/sections", label: "归档" },
+    { href: "/about", label: "关于我" },
   ];
 
   useEffect(() => {
@@ -48,7 +44,15 @@ export function HeaderNavigation({
           <Link
             key={link.href}
             href={link.href}
-            aria-current={pathname === link.href ? "page" : undefined}
+            aria-current={
+              (
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.href)
+              )
+                ? "page"
+                : undefined
+            }
           >
             {link.label}
           </Link>
@@ -86,14 +90,16 @@ export function HeaderNavigation({
           className="mobile-navigation"
           aria-label="移动端导航"
         >
-          <p className="eyebrow">探索 Kairos Semi</p>
+          <p className="eyebrow">探索 Kairos</p>
           {[
             { href: "/", label: "首页" },
-            { href: "/sections", label: "全部专题与文章" },
-            ...categories.map((category) => ({
-              href: `/sections/${category.slug}`,
-              label: category.name,
+            { href: "/columns", label: "全部专栏" },
+            ...columns.map((column) => ({
+              href: `/columns/${column.slug}`,
+              label: column.name,
             })),
+            { href: "/sections", label: "文章归档" },
+            { href: "/about", label: "关于我" },
           ].map((link) => (
             <Link
               key={link.href}
@@ -118,7 +124,7 @@ export function HeaderNavigation({
         <div className="search-dialog-heading">
           <div>
             <p className="eyebrow">Find your next read</p>
-            <h2 id="search-title">寻找一个答案</h2>
+            <h2 id="search-title">找一篇想读的文字</h2>
           </div>
           <button
             className="icon-only"
@@ -139,7 +145,7 @@ export function HeaderNavigation({
           <input
             name="q"
             type="search"
-            placeholder="试试 Overlay、封装、MLCC…"
+            placeholder="搜索技术、随笔或生活片段…"
             aria-label="搜索关键词"
             autoFocus
             required
@@ -148,15 +154,15 @@ export function HeaderNavigation({
             搜索
           </button>
         </form>
-        <p className="search-hint">搜索文章标题、摘要和专题名称</p>
+        <p className="search-hint">在所有专栏中搜索标题、摘要和关键词</p>
         <div className="search-topics">
-          {categories.slice(0, 4).map((category) => (
+          {columns.map((column) => (
             <Link
-              key={category.id}
-              href={`/sections/${category.slug}`}
+              key={column.id}
+              href={`/columns/${column.slug}`}
               onClick={() => dialog.current?.close()}
             >
-              {category.name}
+              {column.name}
               <ArrowUpRight size={14} />
             </Link>
           ))}

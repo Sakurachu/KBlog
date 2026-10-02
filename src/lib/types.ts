@@ -4,6 +4,16 @@ export type Category = {
   slug: string;
   description: string;
   accent: string;
+  sort_order?: number;
+};
+
+export type ColumnTheme = "precision" | "notebook" | "gallery";
+
+export type Column = Category & {
+  theme: ColumnTheme;
+  categorySlugs: string[];
+  cover: string;
+  eyebrow: string;
 };
 
 export type Profile = {

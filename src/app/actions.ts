@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/data";
+import { getCategories, getCurrentUser } from "@/lib/data";
+import { columnThemes, precisionSlugs } from "@/lib/columns";
+import type { ColumnTheme } from "@/lib/types";
 import { makeSlug, readingTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
@@ -137,7 +139,8 @@ export async function createCommentAction(
 ): Promise<ActionState> {
   const content = field(formData, "content");
   const supabase = await createClient();
-  if (!supabase) return { error: "演示模式暂不能提交评论，请先连接 Supabase。" };
+  if (!supabase)
+    return { error: "演示模式暂不能提交评论，请先连接 Supabase。" };
 
   const {
     data: { user },
@@ -170,10 +173,40 @@ export async function savePostAction(
   const content = field(formData, "content");
   const excerpt = field(formData, "excerpt");
   const categoryId = field(formData, "categoryId");
-  const status = field(formData, "status") === "published" ? "published" : "draft";
+  const status =
+    field(formData, "status") === "published" ? "published" : "draft";
 
   if (title.length < 2 || content.length < 20 || !categoryId) {
-    return { error: "标题、分区和正文均为必填项，正文至少 20 个字符。" };
+    return { error: "标题、专栏 / 专题和正文均为必填项，正文至少 20 个字符。" };
+  }
+
+  const selectedCategory = (await getCategories()).find(
+    (category) => category.id === categoryId,
+  );
+  if (!selectedCategory) return { error: "请选择有效的专栏或专题。" };
+  // Built-in columns and technical topics are available before their first database post.
+  const { data: existingCategory, error: lookupError } = await supabase!
+    .from("categories")
+    .select("id")
+    .eq("slug", selectedCategory.slug)
+    .maybeSingle();
+  if (lookupError) return { error: "暂时无法读取专栏，请稍后重试。" };
+  let resolvedCategoryId = existingCategory?.id as string | undefined;
+  if (!resolvedCategoryId) {
+    const { data: createdCategory, error: createError } = await supabase!
+      .from("categories")
+      .insert({
+        name: selectedCategory.name,
+        slug: selectedCategory.slug,
+        description: selectedCategory.description,
+        accent: selectedCategory.accent,
+        sort_order: selectedCategory.sort_order ?? 100,
+      })
+      .select("id")
+      .single();
+    if (createError)
+      return { error: "无法创建所属专栏 / 专题，请刷新后重试。" };
+    resolvedCategoryId = createdCategory.id;
   }
 
   const payload = {
@@ -182,7 +215,7 @@ export async function savePostAction(
     excerpt: excerpt || content.replace(/[#>*_`\n]/g, " ").slice(0, 140),
     content,
     cover_image: field(formData, "coverImage") || "/images/writing-desk.jpg",
-    category_id: categoryId,
+    category_id: resolvedCategoryId,
     author_id: user.id,
     status,
     featured: formData.get("featured") === "on",
@@ -200,12 +233,81 @@ export async function savePostAction(
   const { error } = await query;
   if (error) {
     return {
-      error: error.code === "23505" ? "这个链接别名已经被使用。" : "保存失败，请检查输入。",
+      error:
+        error.code === "23505"
+          ? "这个链接别名已经被使用。"
+          : "保存失败，请检查输入。",
     };
   }
 
   revalidatePath("/", "layout");
   redirect("/studio?saved=1");
+}
+
+export async function saveColumnAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const name = field(formData, "name");
+  const slug = field(formData, "slug");
+  const description = field(formData, "description");
+  const theme = field(formData, "theme") as ColumnTheme;
+  const sortOrder = Number(field(formData, "sortOrder"));
+  const editing = field(formData, "editing") === "yes";
+  if (!name || name.length > 40 || description.length > 240)
+    return { error: "名称需为 1–40 字，介绍最多 240 字。" };
+  if (
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ||
+    slug.length > 60 ||
+    (precisionSlugs.includes(slug) && slug !== "precision")
+  )
+    return {
+      error:
+        "链接标识需为小写英文、数字或连字符，且不能使用已有技术专题的标识。",
+    };
+  if (
+    !Object.hasOwn(columnThemes, theme) ||
+    !Number.isInteger(sortOrder) ||
+    sortOrder < 0 ||
+    sortOrder > 1000
+  )
+    return { error: "请选择有效的风格，排序值需为 0–1000 的整数。" };
+  if (
+    (await getCategories()).some(
+      (category) => category.name === name && category.slug !== slug,
+    )
+  ) {
+    return { error: "这个专栏名称已经被使用。" };
+  }
+  const { data: existing, error: lookupError } = await supabase!
+    .from("categories")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (lookupError) return { error: "专栏读取失败，请稍后再试。" };
+  if (!editing && (existing || ["precision", "notes", "life"].includes(slug)))
+    return { error: "这个链接标识已经被使用。" };
+  const payload = {
+    name,
+    slug,
+    description,
+    accent: columnThemes[theme].accent,
+    sort_order: sortOrder,
+  };
+  const { error } = existing
+    ? await supabase!.from("categories").update(payload).eq("id", existing.id)
+    : await supabase!.from("categories").insert(payload);
+  if (error)
+    return {
+      error:
+        error.code === "23505"
+          ? "专栏名称或链接标识已被使用。"
+          : "保存失败，请稍后重试。",
+    };
+  revalidatePath("/", "layout");
+  return { success: "专栏已保存，风格会自动应用到专栏和文章页面。" };
 }
 
 export async function deletePostAction(formData: FormData) {
